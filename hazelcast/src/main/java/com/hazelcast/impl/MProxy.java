@@ -44,7 +44,7 @@ public interface MProxy extends IMap, IRemoveAwareProxy, IGetAwareProxy, Hazelca
 
     MapOperationsCounter getMapOperationCounter();
 
-    void putForSync(Object key, Object value);
+    void putForSync(Object key, Object value, long ttl);
 
     void removeForSync(Object key);
 }

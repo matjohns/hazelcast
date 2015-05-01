@@ -334,7 +334,11 @@ public class ConcurrentMapManager extends BaseManager {
                     mproxy.removeForSync(mergingEntry.getKey());
                     notifyWanMergeListeners(WanMergeListener.EventType.REMOVED);
                 } else {
-                    mproxy.putForSync(mergingEntry.getKeyData(), winner);
+                    long ttl = -1;
+                    if (mergingEntry != null && winner == mergingEntry.getValueData() && mergingEntry.getExpirationTime() > 0) {
+                        ttl = mergingEntry.getExpirationTime() - System.currentTimeMillis();
+                    }
+                    mproxy.putForSync(mergingEntry.getKeyData(), winner, ttl);
                     notifyWanMergeListeners(WanMergeListener.EventType.UPDATED);
                 }
             } else {
@@ -1726,8 +1730,8 @@ public class ConcurrentMapManager extends BaseManager {
             return result;
         }
 
-        public Object putForSync(String name, Object key, Object value) {
-            Object result = txnalPut(CONCURRENT_MAP_SET, name, key, value, -1, -1, Long.MIN_VALUE);
+        public Object putForSync(String name, Object key, Object value, long ttl) {
+            Object result = txnalPut(CONCURRENT_MAP_SET, name, key, value, -1, ttl, Long.MIN_VALUE);
             return (result == Boolean.TRUE);
         }
 

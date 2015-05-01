@@ -222,8 +222,8 @@ public class MProxyImpl extends FactoryAwareNamedProxy implements MProxy, DataSe
         dynamicProxy.flush();
     }
 
-    public void putForSync(Object key, Object value) {
-        dynamicProxy.putForSync(key, value);
+    public void putForSync(Object key, Object value, long ttl) {
+        dynamicProxy.putForSync(key, value, ttl);
     }
 
     public void removeForSync(Object key) {
@@ -564,12 +564,12 @@ public class MProxyImpl extends FactoryAwareNamedProxy implements MProxy, DataSe
             return put(key, value, -1, TimeUnit.SECONDS);
         }
 
-        public void putForSync(Object key, Object value) {
+        public void putForSync(Object key, Object value, long ttl) {
             long begin = Clock.currentTimeMillis();
             check(key);
             check(value);
             MPut mput = ThreadContext.get().getCallCache(factory).getMPut();
-            mput.putForSync(name, key, value);
+            mput.putForSync(name, key, value, ttl);
             mput.clearRequest();
             mapOperationCounter.incrementPuts(Clock.currentTimeMillis() - begin);
         }

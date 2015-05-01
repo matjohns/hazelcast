@@ -229,6 +229,64 @@ public class WanReplicationTest {
         }
     }
 
+    @Test
+    public void testWANExpiringEntries() throws Exception {
+        Config c1 = new Config();
+        Config c2 = new Config();
+
+        c1.getGroupConfig().setName("newyork");
+        c1.getNetworkConfig().getJoin().getTcpIpConfig()
+            .addMember("127.0.0.1:5701")
+            .setEnabled(true);
+        c1.addWanReplicationConfig(new WanReplicationConfig()
+            .setName("my-wan")
+            .addTargetClusterConfig(new WanTargetClusterConfig()
+                .addEndpoint("127.0.0.1:5703")
+                .addEndpoint("127.0.0.1:5704")
+                .setGroupName("london")));
+        c1.getMapConfig("default").setWanReplicationRef(new WanReplicationRef()
+            .setName("my-wan")
+            .setMergePolicy(PassThroughMergePolicy.NAME));
+
+        c2.getGroupConfig().setName("london");
+        c2.getNetworkConfig().getJoin().getTcpIpConfig()
+            .addMember("127.0.0.1:5703")
+            .setEnabled(true);
+        c2.addWanReplicationConfig(new WanReplicationConfig()
+            .setName("my-wan")
+            .addTargetClusterConfig(new WanTargetClusterConfig()
+                .addEndpoint("127.0.0.1:5701")
+                .addEndpoint("127.0.0.1:5702")
+                .setGroupName("newyork")));
+        c2.getMapConfig("default").setWanReplicationRef(new WanReplicationRef()
+            .setName("my-wan")
+            .setMergePolicy(PassThroughMergePolicy.NAME));
+
+        HazelcastInstance h10 = Hazelcast.newHazelcastInstance(c1);
+        HazelcastInstance h11 = Hazelcast.newHazelcastInstance(c1);
+        HazelcastInstance h20 = Hazelcast.newHazelcastInstance(c2);
+        HazelcastInstance h21 = Hazelcast.newHazelcastInstance(c2);
+
+        h10.getMap("default").put("foo", "bar");
+
+        int size = 100;
+        for (int i = 0; i < size; i++) {
+            h10.getMap("default").put(i, "value" + i, 10, TimeUnit.SECONDS);
+        }
+
+        Thread.sleep(1000);
+        assertEquals(size, h10.getMap("default").size());
+        assertEquals(size, h11.getMap("default").size());
+        assertEquals(size, h20.getMap("default").size());
+        assertEquals(size, h21.getMap("default").size());
+
+        Thread.sleep(10000);
+        assertEquals(0, h10.getMap("default").size());
+        assertEquals(0, h11.getMap("default").size());
+        assertEquals(0, h20.getMap("default").size());
+        assertEquals(0, h21.getMap("default").size());
+    }
+
     class MergeLatch implements WanMergeListener {
         final AtomicInteger removeCount = new AtomicInteger();
         final AtomicInteger updateCount = new AtomicInteger();
